@@ -60,7 +60,6 @@ class Client extends EventEmitter {
     this._reconnectTimeout = null
     this._autoReconnect = null
     this._reconnectTimeoutDuration = Client.MIN_RECONNECT_TIMEOUT
-    this.counter = 0
   }
 
   get isConnected() {
@@ -81,7 +80,7 @@ class Client extends EventEmitter {
   start() {
     console.log('starting')
     debug('Starting client %j', this)
-    this._openConnection('start')
+    this._openConnection()
       .catch(err => {
        this.emit(Client.ERROR, new Exception(`Failed to start the client ${err.message}`, 'connection', err))
       })
@@ -122,7 +121,7 @@ class Client extends EventEmitter {
       debug('Received reconnect event %j', meta)
       this.emit(Client.RECONNECT, Client.GENERAL_NAMESPACE_META)
       console.log('reconnect emit')
-      this._openConnection('reconnect')
+      this._openConnection()
     }
   }
 
@@ -145,13 +144,11 @@ class Client extends EventEmitter {
     }))
   }
 
-  async _openConnection(origin) {
+  async _openConnection() {
     if (this.isConnected) {
       return
     }
     this._autoReconnect = true
-
-    console.log('opening from', origin)
 
     let resp
     try {
@@ -174,11 +171,10 @@ class Client extends EventEmitter {
       return
     }
 
-    this._handleConnection(resp.payload, this.counter++)
+    this._handleConnection(resp.payload)
   }
 
-  _handleConnection(payload, counter) {
-    console.log('count', counter)
+  _handleConnection(payload) {
     if (!payload) {
       throw new Error('Did not receive a valid response from the backend service')
     }
@@ -323,7 +319,7 @@ class Client extends EventEmitter {
 
     this._reconnectTimeout = setTimeout(() => {
       this.emit(Client.RECONNECT, Client.GENERAL_NAMESPACE_META)
-      this._openConnection('reconnect timeout')
+      this._openConnection()
     }, timeout)
   }
 
