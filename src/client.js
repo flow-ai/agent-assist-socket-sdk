@@ -1,5 +1,6 @@
 import debugWrapper from 'debugjs-wrapper'
 import EventEmitter from 'events'
+import {w3cwebsocket as WebSocket} from 'websocket'
 import Rest from './rest'
 import Exception from './exception'
 
@@ -59,6 +60,7 @@ class Client extends EventEmitter {
     this._reconnectTimeout = null
     this._autoReconnect = null
     this._reconnectTimeoutDuration = Client.MIN_RECONNECT_TIMEOUT
+    this.counter = 0
   }
 
   get isConnected() {
@@ -77,10 +79,11 @@ class Client extends EventEmitter {
   }
 
   start() {
+    console.log('starting')
     debug('Starting client %j', this)
-    this._openConnection()
+    this._openConnection('start')
       .catch(err => {
-        throw new Exception(`Failed to start the client ${err.message}`, 'connection', err)
+       this.emit(Client.ERROR, new Exception(`Failed to start the client ${err.message}`, 'connection', err))
       })
   }
 
@@ -97,7 +100,7 @@ class Client extends EventEmitter {
       debug('Stopping the client')
       this._closeConnection()
     } catch(err) {
-      throw new Exception('Failed to stop the client', 'connection', err)
+      this.emit(Client.ERROR, new Exception('Failed to stop the client', 'connection', err))
     }
   }
 
@@ -118,7 +121,8 @@ class Client extends EventEmitter {
     if (!this.isConnected) {
       debug('Received reconnect event %j', meta)
       this.emit(Client.RECONNECT, Client.GENERAL_NAMESPACE_META)
-      this._openConnection()
+      console.log('reconnect emit')
+      this._openConnection('reconnect')
     }
   }
 
@@ -126,7 +130,8 @@ class Client extends EventEmitter {
     debug('Sending message %j', message)
 
     if(!this.isConnected) {
-      throw new Exception('Could not send the message. The socket connection is disconnected.', 'user')
+     this.emit(Client.ERROR, new Exception('Could not send the message. The socket connection is disconnected.', 'user'))
+     return
     }
 
     this._socket.send(JSON.stringify({
@@ -140,8 +145,13 @@ class Client extends EventEmitter {
     }))
   }
 
-  async _openConnection() {
+  async _openConnection(origin) {
+    if (this.isConnected) {
+      return
+    }
     this._autoReconnect = true
+
+    console.log('opening from', origin)
 
     let resp
     try {
@@ -164,10 +174,11 @@ class Client extends EventEmitter {
       return
     }
 
-    this._handleConnection(resp.payload)
+    this._handleConnection(resp.payload, this.counter++)
   }
 
-  _handleConnection(payload) {
+  _handleConnection(payload, counter) {
+    console.log('count', counter)
     if (!payload) {
       throw new Error('Did not receive a valid response from the backend service')
     }
@@ -176,7 +187,7 @@ class Client extends EventEmitter {
 
     this._session = threadId
 
-    if (sessionStorage) {
+    if (typeof sessionStorage !== 'undefined') {
       sessionStorage.setItem(`agent-assist-${this._authorId}`, this._session)
     }
 
@@ -269,7 +280,7 @@ class Client extends EventEmitter {
           break
         default:
           debug('Unknown message received %j', {event, payload, meta, error})
-          this.emit(Client.ERROR)
+          this.emit(Client.ERROR, new Exception('Unknown message received', 'message'))
           break
       }
     }
@@ -305,12 +316,14 @@ class Client extends EventEmitter {
       return
     }
 
+    console.log('reconnect')
+
     const timeout = this.reconnectTimeout
     debug(`Reconnecting with timeout in '${timeout}'ms`)
 
     this._reconnectTimeout = setTimeout(() => {
       this.emit(Client.RECONNECT, Client.GENERAL_NAMESPACE_META)
-      this._openConnection()
+      this._openConnection('reconnect timeout')
     }, timeout)
   }
 
