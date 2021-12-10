@@ -23,6 +23,7 @@ class Client extends EventEmitter {
     this.on(Client.RECONNECT_CLIENT, this.reconnect)
     this.on(Client.CLOSE_CLIENT, this.stop)
     this.on(Client.ASSIST_DECISION, this.send)
+    this.on(Client.TRIGGER_WORKFLOWS_OPENING, this.sendWorkflowsOpening)
 
     if (!opts.authorId || typeof opts.authorId !== 'string') {
       throw new Error('authorId should be of type string')
@@ -78,7 +79,6 @@ class Client extends EventEmitter {
   }
 
   start() {
-    console.log('starting')
     debug('Starting client %j', this)
     this._openConnection()
       .catch(err => {
@@ -120,7 +120,6 @@ class Client extends EventEmitter {
     if (!this.isConnected) {
       debug('Received reconnect event %j', meta)
       this.emit(Client.RECONNECT, Client.GENERAL_NAMESPACE_META)
-      console.log('reconnect emit')
       this._openConnection()
     }
   }
@@ -137,11 +136,30 @@ class Client extends EventEmitter {
       type: 'message.send',
       payload: {
         ...message,
-        threadId: this._session,
-        agentId: this._agentId,
-        channelId: this._channelId
+        ...this._buildCommonData()
       }
     }))
+  }
+
+  sendWorkflowsOpening(meta) {
+    debug('Sending workflows opening %j', {meta, threadId: this._session, agentId: this._agentId})
+
+    this._socket.send(JSON.stringify({
+      type: 'message.send',
+      payload: {
+        type: 'event',
+        event: 'SYS_AGENT_WORKFLOWS_START',
+        ...this._buildCommonData()
+      }
+    }))
+  }
+
+  _buildCommonData() {
+    return {
+      threadId: this._session,
+      agentId: this._agentId,
+      channelId: this._channelId
+    }
   }
 
   async _openConnection() {
@@ -312,8 +330,6 @@ class Client extends EventEmitter {
       return
     }
 
-    console.log('reconnect')
-
     const timeout = this.reconnectTimeout
     debug(`Reconnecting with timeout in '${timeout}'ms`)
 
@@ -391,6 +407,8 @@ Client.ASSIST_REPLY = 'ASSIST_REPLY'
 Client.ASSIST_DECISION = 'ASSIST_DECISION'
 
 Client.BOT_REPLY = 'bot.reply'
+
+Client.TRIGGER_WORKFLOWS_OPENING = 'TRIGGER_WORKFLOWS_OPENING'
 
 Client.MAX_RECONNECT_TIMEOUT = 20000
 
