@@ -128,8 +128,13 @@ class Client extends EventEmitter {
     debug('Sending message %j', message)
 
     if(!this.isConnected) {
-     this.emit(Client.ERROR, new Exception('Could not send the message. The socket connection is disconnected.', 'user'))
+     this.emit(Client.ERROR, new Exception('Could not send the message. The socket connection is disconnected.', 'connection'))
      return
+    }
+
+    if (!message.meta && !message.meta.namespace) {
+      this.emit(Client.ERROR, new Exception('Meta or namespace is not provided for the message', 'message'))
+      return
     }
 
     this._socket.send(JSON.stringify({
