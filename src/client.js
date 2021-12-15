@@ -152,8 +152,10 @@ class Client extends EventEmitter {
     this._socket.send(JSON.stringify({
       type: 'message.send',
       payload: {
-        type: 'event',
-        event: 'SYS_AGENT_WORKFLOWS_START',
+        type: 'trigger_flow_event',
+        payload: {
+          eventName: 'SYS_AGENT_WORKFLOWS_START'
+        },
         ...this._buildCommonData()
       }
     }))
