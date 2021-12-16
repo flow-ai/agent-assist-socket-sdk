@@ -29,7 +29,6 @@
   "devDependencies": {
     "@babel/cli": "^7.16.0",
     "@babel/core": "^7.15.8",
-    "@babel/polyfill": "^7.12.1",
     "@babel/preset-env": "^7.15.8",
     "@babel/register": "^7.15.3",
     "babel-loader": "^8.2.3"
@@ -38,6 +37,7 @@
     "axios": "^0.24.0",
     "debugjs-wrapper": "0.0.3",
     "events": "^3.3.0",
-    "websocket": "^1.0.34"
+    "websocket": "^1.0.34",
+    "@babel/polyfill": "^7.12.1"
   }
 }
