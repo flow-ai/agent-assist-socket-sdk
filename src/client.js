@@ -284,12 +284,14 @@ class Client extends EventEmitter {
         event,
         payload,
         meta,
-        error
+        error,
+        type
       } = JSON.parse(evt.data)
 
       debug('Received websocket message %j', {event, payload, meta, error})
 
-      switch (event) {
+      // if 'event' is undefined use 'type' from evt.data
+      switch (event || type) {
         case 'pong':
           break
         case Client.BOT_REPLY:
