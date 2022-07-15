@@ -12,8 +12,9 @@ class Client extends EventEmitter {
    * @param {object} opts 
    * @param {string} opts.authorId - required to open connection for specific conversation
    * @param {string} opts.clientId - required, defines company/project in flow
+   * @param {string} opts.environment - required, qa or prod
    * @param {string?} opts.session - optional, session that was given on previous connect for current chat
-   * @param {string?} opts.endpoint - optional, can be specified to access dev or local
+   * @param {string?} opts.pageId - optional, pageId of source handle (fb page id or smooch app id) to identify bot
    * @param {boolean?} opts.silent - optional, can be specified to prevent sdk from spamming to console
    */
   constructor(opts) {
@@ -33,17 +34,21 @@ class Client extends EventEmitter {
       throw new Error('clientId should be of type string')
     }
 
-    if (opts.endpoint && typeof opts.endpoint !== 'string') {
-      throw new Error('endpoint should be of type string if provided')
+    if (opts.environment && typeof opts.environment !== 'string') {
+      throw new Error('environment should be of type string if provided')
     }
 
     if (opts.session && typeof opts.session !== 'string') {
       throw new Error('session should be of type string if provided')
     }
 
+    if (opts.pageId && typeof opts.pageId !== 'string') {
+      throw new Error('pageId should be of type string if provided')
+    }
+
     this._authorId = opts.authorId
     this._clientId = opts.clientId
-    this._endpoint = opts.endpoint || 'https://app.flow.ai/agent-assist-gateway-web'
+    this._endpoint = opts.environment === 'qa' ? 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web' : 'https://app.flow.ai/agent-assist-gateway-web'
     this._silent = !!opts.silent
     this._session = opts.session
 
