@@ -42,8 +42,8 @@ class Client extends EventEmitter {
       throw new Error('session should be of type string if provided')
     }
 
-    if (opts.pageId && typeof opts.pageId !== 'string') {
-      throw new Error('pageId should be of type string if provided')
+    if (!opts.pageId || typeof opts.pageId !== 'string') {
+      throw new Error('pageId should be of type string')
     }
 
     this._authorId = opts.authorId
@@ -51,6 +51,7 @@ class Client extends EventEmitter {
     this._endpoint = opts.environment === 'qa' ? 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web' : 'https://app.flow.ai/agent-assist-gateway-web'
     this._silent = !!opts.silent
     this._session = opts.session
+    this._pageId = opts.pageId
 
     this._rest = new Rest(this._endpoint, this._silent)
     
@@ -186,7 +187,8 @@ class Client extends EventEmitter {
         path: '/socket.info',
         queryParams: {
           authorId: this._authorId,
-          clientId: this._clientId
+          clientId: this._clientId,
+          externalId: this._pageId
         }
       })
     } catch (err) {
