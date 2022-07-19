@@ -1,6 +1,6 @@
 {
   "name": "flow-agent-assist-socket-sdk",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Flow agent assistent socket connector",
   "main": "lib/index.js",
   "scripts": {

@@ -171,7 +171,8 @@ class Client extends EventEmitter {
     return {
       threadId: this._session,
       agentId: this._agentId,
-      channelId: this._channelId
+      channelId: this._channelId,
+      workflowsAgentId: this._clientId
     }
   }
 
