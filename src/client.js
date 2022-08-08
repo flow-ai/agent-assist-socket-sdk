@@ -133,7 +133,7 @@ class Client extends EventEmitter {
   send(message) {
     debug('Sending message %j', message)
 
-    if(!this.isConnected) {
+    if (!this.isConnected) {
      this.emit(Client.ERROR, new Exception('Could not send the message. The socket connection is disconnected.', 'connection'))
      return
     }
@@ -269,12 +269,14 @@ class Client extends EventEmitter {
 
       this._socket = null
 
-      if(evt.code === 1006) {
+      if (evt.code === 0) {
+
+      } else if (evt.code === 1006) {
         this.emit(Client.ERROR, new Exception('The connection closed abnormally', 'connection', null, true))
         this.emit(Client.CLOSE, Client.GENERAL_NAMESPACE_META)
 
         this._reconnect()
-      } else if(evt && evt.reason !== 'connection failed') {
+      } else if (evt && evt.reason !== 'connection failed') {
         this.emit(Client.CLOSE, Client.GENERAL_NAMESPACE_META)
         this._reconnect()
       } else {
@@ -326,7 +328,7 @@ class Client extends EventEmitter {
   _keepAlive() {
     return setInterval(() => {
       try {
-        if(this.isConnected) {
+        if (this.isConnected) {
           debug('Sending keep alive packet')
           this._socket.send(JSON.stringify({
             type: 'ping'
@@ -334,7 +336,7 @@ class Client extends EventEmitter {
         }
       } catch(err) {
         error('Failed sending ping %s', err.stack)
-        if(!this._silent) {
+        if (!this._silent) {
           console.error('Error while sending a keepalive ping', err)
         }
       }
@@ -342,7 +344,7 @@ class Client extends EventEmitter {
   }
 
   _reconnect() {
-    if(!this._autoReconnect) {
+    if (!this._autoReconnect) {
       debug('Auto reconnect is disabled')
       return
     }
@@ -365,20 +367,20 @@ class Client extends EventEmitter {
 
     this._resetReconnectTimeout()
 
-    if(this._reconnectTimeout) {
+    if (this._reconnectTimeout) {
       // Whenever we close the connection manually,
       // we kill any idle reconnect time outs
       clearTimeout(this._reconnectTimeout)
     }
 
-    if(this._keepAliveInterval) {
+    if (this._keepAliveInterval) {
       // Stop any keep alive intervals
       clearInterval(this._keepAliveInterval)
     }
 
-    if(this.isConnected) {
+    if (this.isConnected) {
       debug('Closing the socket')
-      this._socket.close()
+      this._socket.close(0)
     } else {
       debug('No socket connection to close')
     }
