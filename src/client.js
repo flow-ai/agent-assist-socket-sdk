@@ -178,7 +178,7 @@ class Client extends EventEmitter {
 
   async _openConnection() {
     if (this.isConnected) {
-      return
+      this.stop()
     }
     this._autoReconnect = true
 
