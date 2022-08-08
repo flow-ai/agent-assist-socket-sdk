@@ -48,7 +48,7 @@ class Client extends EventEmitter {
 
     this._authorId = opts.authorId
     this._clientId = opts.clientId
-    this._endpoint = opts.environment === 'qa' ? 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web' : 'https://app.flow.ai/agent-assist-gateway-web'
+    this._endpoint = this._decideEndpoint(opts.environment)
     this._silent = !!opts.silent
     this._session = opts.session
     this._pageId = opts.pageId
@@ -58,6 +58,14 @@ class Client extends EventEmitter {
     debug('Initialized client %j', this)      
 
     this._init()
+  }
+
+  /**
+   * 
+   * @param {string} env 
+   */
+  _decideEndpoint(env) {
+    return env === 'qa' ? 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web' : 'https://app.flow.ai/agent-assist-gateway-web'
   }
 
   _init() {
@@ -86,6 +94,13 @@ class Client extends EventEmitter {
       default:
         return this._reconnectTimeoutDuration += Client.RECONNECT_TIMEOUT_GAP
     }
+  }
+
+  setParams({ authorId, clientId, environment, pageId }) {
+    this._authorId = authorId
+    this._clientId = clientId
+    this._endpoint = this._decideEndpoint(environment)
+    this._pageId = pageId
   }
 
   start() {
