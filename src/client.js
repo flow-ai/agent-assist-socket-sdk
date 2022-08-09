@@ -288,8 +288,8 @@ class Client extends EventEmitter {
 
       this._socket = null
 
-      if (evt.code === 0) {
-
+      if (evt.code === 1000) {
+        return
       } else if (evt.code === 1006) {
         this.emit(Client.ERROR, new Exception('The connection closed abnormally', 'connection', null, true))
         this.emit(Client.CLOSE, Client.GENERAL_NAMESPACE_META)
@@ -399,7 +399,7 @@ class Client extends EventEmitter {
 
     if (this.isConnected) {
       debug('Closing the socket')
-      this._socket.close(0)
+      this._socket.close(1000)
     } else {
       debug('No socket connection to close')
     }
