@@ -65,7 +65,14 @@ class Client extends EventEmitter {
    * @param {string} env 
    */
   _decideEndpoint(env) {
-    return env === 'qa' ? 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web' : 'https://app.flow.ai/agent-assist-gateway-web'
+    switch (env) {
+      case 'qa':
+        return 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web'
+      case 'stg':
+        return 'https://app-stg.flow.ai/agent-assist-gateway-web'
+      default:
+        return 'https://app.flow.ai/agent-assist-gateway-web'
+    }
   }
 
   _init() {
