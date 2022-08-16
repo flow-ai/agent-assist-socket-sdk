@@ -68,7 +68,7 @@ class Client extends EventEmitter {
     switch (env) {
       case 'qa':
         return 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web'
-      case 'stg':
+      case 'stage':
         return 'https://app-stg.flow.ai/agent-assist-gateway-web'
       default:
         return 'https://app.flow.ai/agent-assist-gateway-web'
