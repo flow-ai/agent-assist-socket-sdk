@@ -23,7 +23,8 @@ class Client extends EventEmitter {
     this.on(Client.INIT_CLIENT, this.start)
     this.on(Client.RECONNECT_CLIENT, this.reconnect)
     this.on(Client.CLOSE_CLIENT, this.stop)
-    this.on(Client.ASSIST_DECISION, this.send)
+    this.on(Client.ASSIST_DECISION, this.send('message.send'))
+    this.on(Client.WIDGET_SYNC, this.send('sync'))
     this.on(Client.TRIGGER_WORKFLOWS_OPENING, this.sendWorkflowsOpening)
 
     if (!opts.authorId || typeof opts.authorId !== 'string') {
@@ -156,7 +157,7 @@ class Client extends EventEmitter {
     }
   }
 
-  send(message) {
+  send = (type) => (message) => {
     debug('Sending message %j', message)
 
     if (!this.isConnected) {
@@ -164,13 +165,13 @@ class Client extends EventEmitter {
      return
     }
 
-    if (!message.meta && !message.meta.namespace) {
+    if (!message.meta || !message.meta.namespace) {
       this.emit(Client.ERROR, new Exception('Meta or namespace is not provided for the message', 'message'))
       return
     }
 
     this._socket.send(JSON.stringify({
-      type: 'message.send',
+      type,
       payload: {
         ...message,
         ...this._buildCommonData()
@@ -188,6 +189,7 @@ class Client extends EventEmitter {
         payload: {
           eventName: 'SYS_AGENT_WORKFLOWS_START'
         },
+        meta,
         ...this._buildCommonData()
       }
     }))
@@ -334,6 +336,14 @@ class Client extends EventEmitter {
           debug('Received bot reply %j', payload)
           this.emit(Client.ASSIST_REPLY, {event, payload, meta, error})
           break
+        case Client.SYNC_BROADCAST:
+          debug('Received sync action %j', payload)
+          this.emit(Client.WIDGET_SYNC_SUB, { payload, meta, error })
+          break
+        case Client.SESSION_INFO:
+          debug('Received session action %j', payload)
+          this.emit(Client.SESSION, { payload, meta, error })
+          break
         case 'error':
           this.emit(Client.ERROR, new Exception(payload, 'message', null, false, meta?.namespace))
           break
@@ -452,6 +462,16 @@ Client.ASSIST_REPLY = 'ASSIST_REPLY'
 Client.ASSIST_DECISION = 'ASSIST_DECISION'
 
 Client.BOT_REPLY = 'bot.reply'
+
+Client.WIDGET_SYNC = 'WIDGET_SYNC'
+
+Client.WIDGET_SYNC_SUB = 'WIDGET_SYNC_SUBSCRIPTION'
+
+Client.SYNC_BROADCAST = 'sync.broadcast'
+
+Client.SESSION_INFO = 'session.info'
+
+Client.SESSION = 'session'
 
 Client.TRIGGER_WORKFLOWS_OPENING = 'TRIGGER_WORKFLOWS_OPENING'
 
