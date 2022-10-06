@@ -11,10 +11,8 @@ class Client extends EventEmitter {
    * 
    * @param {object} opts 
    * @param {string} opts.authorId - required to open connection for specific conversation
-   * @param {string} opts.clientId - required, defines company/project in flow
    * @param {string} opts.environment - required, qa or prod
    * @param {string?} opts.session - optional, session that was given on previous connect for current chat
-   * @param {string?} opts.pageId - optional, pageId of source handle (fb page id or smooch app id) to identify bot
    * @param {boolean?} opts.silent - optional, can be specified to prevent sdk from spamming to console
    */
   constructor(opts) {
@@ -25,14 +23,13 @@ class Client extends EventEmitter {
     this.on(Client.CLOSE_CLIENT, this.stop)
     this.on(Client.ASSIST_DECISION, this.send('message.send'))
     this.on(Client.WIDGET_SYNC, this.send('sync'))
-    this.on(Client.TRIGGER_WORKFLOWS_OPENING, this.sendWorkflowsOpening)
 
     if (!opts.authorId || typeof opts.authorId !== 'string') {
       throw new Error('authorId should be of type string')
     }
 
-    if (!opts.clientId || typeof opts.clientId !== 'string') {
-      throw new Error('clientId should be of type string')
+    if (!opts.caseId || typeof opts.caseId !== 'string') {
+      throw new Error('caseId should be of type string')
     }
 
     if (opts.environment && typeof opts.environment !== 'string') {
@@ -43,16 +40,11 @@ class Client extends EventEmitter {
       throw new Error('session should be of type string if provided')
     }
 
-    if (!opts.pageId || typeof opts.pageId !== 'string') {
-      throw new Error('pageId should be of type string')
-    }
-
     this._authorId = opts.authorId
-    this._clientId = opts.clientId
+    this._caseId = opts.caseId
     this._endpoint = this._decideEndpoint(opts.environment)
     this._silent = !!opts.silent
     this._session = opts.session
-    this._pageId = opts.pageId
 
     this._rest = new Rest(this._endpoint, this._silent)
     
@@ -104,11 +96,10 @@ class Client extends EventEmitter {
     }
   }
 
-  setParams({ authorId, clientId, environment, pageId }) {
+  setParams({ authorId, caseId, environment }) {
     this._authorId = authorId
-    this._clientId = clientId
+    this._caseId = caseId
     this._endpoint = this._decideEndpoint(environment)
-    this._pageId = pageId
   }
 
   start() {
@@ -160,6 +151,10 @@ class Client extends EventEmitter {
   send = (type) => (message) => {
     debug('Sending message %j', message)
 
+    if (type === 'message.send') {
+      this._startRequestTimeout(payload)
+    }
+
     if (!this.isConnected) {
      this.emit(Client.ERROR, new Exception('Could not send the message. The socket connection is disconnected.', 'connection'))
      return
@@ -170,37 +165,30 @@ class Client extends EventEmitter {
       return
     }
 
+    const payload = {
+      ...message,
+      ...this._buildCommonData()
+    }
+
     this._socket.send(JSON.stringify({
       type,
-      payload: {
-        ...message,
-        ...this._buildCommonData()
-      }
+      payload
     }))
   }
 
-  sendWorkflowsOpening(meta) {
-    debug('Sending workflows opening %j', {meta, threadId: this._session, agentId: this._agentId})
+  _startRequestTimeout(payload) {
+    this._requestTimeout = setTimeout(() => {
+      this.emit(Client.ASSIST_REPLY, { ...payload, payload: {} })
+    }, Client.REQUEST_TIMEOUT)
+  }
 
-    this._socket.send(JSON.stringify({
-      type: 'message.send',
-      payload: {
-        type: 'trigger_flow_event',
-        payload: {
-          eventName: 'SYS_AGENT_WORKFLOWS_START'
-        },
-        meta,
-        ...this._buildCommonData()
-      }
-    }))
+  _clearRequestTimeout() {
+    clearTimeout(this._requestTimeout)
   }
 
   _buildCommonData() {
     return {
-      threadId: this._session,
-      agentId: this._agentId,
-      channelId: this._channelId,
-      workflowsAgentId: this._clientId
+      authorId: this._authorId
     }
   }
 
@@ -215,9 +203,7 @@ class Client extends EventEmitter {
       resp = await this._rest.get({
         path: '/socket.info',
         queryParams: {
-          authorId: this._authorId,
-          clientId: this._clientId,
-          externalId: this._pageId
+          authorId: this._authorId
         }
       })
     } catch (err) {
@@ -240,16 +226,13 @@ class Client extends EventEmitter {
       throw new Error('Did not receive a valid response from the backend service')
     }
 
-    const { endpoint, threadId, agentId, channelId } = payload
+    const { endpoint, session } = payload
 
-    this._session = threadId
+    this._session = session
 
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.setItem(`agent-assist-${this._authorId}`, this._session)
     }
-
-    this._agentId = agentId
-    this._channelId = channelId
 
     debug('Opening new WS connection for endpoint', endpoint)
 
@@ -334,6 +317,7 @@ class Client extends EventEmitter {
           break
         case Client.BOT_REPLY:
           debug('Received bot reply %j', payload)
+          this._clearRequestTimeout()
           this.emit(Client.ASSIST_REPLY, {event, payload, meta, error})
           break
         case Client.SYNC_BROADCAST:
@@ -476,6 +460,8 @@ Client.SESSION = 'session'
 Client.TRIGGER_WORKFLOWS_OPENING = 'TRIGGER_WORKFLOWS_OPENING'
 
 Client.MAX_RECONNECT_TIMEOUT = 20000
+
+Client.REQUEST_TIMEOUT = 10000
 
 Client.RECONNECT_TIMEOUT_GAP = 500
 
