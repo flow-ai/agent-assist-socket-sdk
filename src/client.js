@@ -23,6 +23,7 @@ class Client extends EventEmitter {
     this.on(Client.CLOSE_CLIENT, this.stop)
     this.on(Client.ASSIST_DECISION, this.send('message.send'))
     this.on(Client.WIDGET_SYNC, this.send('sync'))
+    this.on(Client.GET_LIST, this.send('list'))
 
     if (!opts.authorId || typeof opts.authorId !== 'string') {
       throw new Error('authorId should be of type string')
@@ -328,6 +329,10 @@ class Client extends EventEmitter {
           debug('Received session action %j', payload)
           this.emit(Client.SESSION, { payload, meta, error })
           break
+        case Client.LIST_REPLY:
+          debug('Received list action %j', payload)
+          this.emit(Client.GET_LIST_REPLY, { payload, meta, error })
+          break
         case 'error':
           this.emit(Client.ERROR, new Exception(payload, 'message', null, false, meta?.namespace))
           break
@@ -456,6 +461,12 @@ Client.SYNC_BROADCAST = 'sync.broadcast'
 Client.SESSION_INFO = 'session.info'
 
 Client.SESSION = 'session'
+
+Client.GET_LIST = 'get.list'
+
+Client.LIST_REPLY = 'list.reply'
+
+Client.GET_LIST_REPLY = 'get.list.reply'
 
 Client.TRIGGER_WORKFLOWS_OPENING = 'TRIGGER_WORKFLOWS_OPENING'
 
