@@ -279,6 +279,10 @@ class Client extends EventEmitter {
     socket.onclose = evt => {
       debug('Socket closed %j', evt)
 
+      if (this._session !== session) {
+        return
+      }
+
       this._socket = null
 
       if (evt.code === 1000) {
