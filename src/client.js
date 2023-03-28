@@ -24,6 +24,7 @@ class Client extends EventEmitter {
     this.on(Client.ASSIST_DECISION, this.send('message.send'))
     this.on(Client.WIDGET_SYNC, this.send('sync'))
     this.on(Client.GET_LIST, this.send('list'))
+    this.on(Client.SEND_ANALYTIC, this.sendAnalytic)
 
     if (!opts.authorId || typeof opts.authorId !== 'string') {
       throw new Error('authorId should be of type string')
@@ -48,9 +49,12 @@ class Client extends EventEmitter {
     this._session = opts.session
 
     this._rest = new Rest(this._endpoint, this._silent)
+
+    this._analyticPull = []
     
     debug('Initialized client %j', this)      
 
+    this._beforeunload()
     this._init()
   }
 
@@ -176,6 +180,47 @@ class Client extends EventEmitter {
       payload
     }))
   }
+
+  sendAnalytic = (payload) => {
+    this._analyticPull.push(payload)
+
+    if (this._analyticTimeout) {
+      return
+    }
+
+    this._startAnalyticTimeout()
+  }
+
+  _startAnalyticTimeout() {
+    this._analyticTimeout = setTimeout(this._analyticSendPull, Client.ANALYTIC_TIMEOUT)
+  }
+
+  _analyticSendPull = () => {
+    if (!this.isConnected) {
+      this._startAnalyticTimeout()
+      return
+    }
+
+    const pull = this._analyticPull || []
+
+    this._analyticTimeout = null
+    this._analyticPull = []
+
+    this._socket.send(JSON.stringify({
+      type: 'analytic',
+      payload: {
+        payload: pull,
+        ...this._buildCommonData()
+      }
+    }))
+  }
+
+  _beforeunload = () => {
+    window.onbeforeunload = () => {
+      this._analyticTimeout && clearTimeout(this._analyticTimeout)
+      this._analyticPull?.length && this._analyticSendPull()
+    }
+  } 
 
   _startRequestTimeout(payload) {
     this._requestTimeout = setTimeout(() => {
@@ -468,6 +513,8 @@ Client.SESSION = 'session'
 
 Client.GET_LIST = 'get.list'
 
+Client.SEND_ANALYTIC = 'send.analytic'
+
 Client.LIST_REPLY = 'list.reply'
 
 Client.GET_LIST_REPLY = 'get.list.reply'
@@ -477,6 +524,8 @@ Client.TRIGGER_WORKFLOWS_OPENING = 'TRIGGER_WORKFLOWS_OPENING'
 Client.MAX_RECONNECT_TIMEOUT = 20000
 
 Client.REQUEST_TIMEOUT = 10000
+
+Client.ANALYTIC_TIMEOUT = 5000
 
 Client.RECONNECT_TIMEOUT_GAP = 500
 
