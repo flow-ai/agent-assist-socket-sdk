@@ -234,7 +234,8 @@ class Client extends EventEmitter {
 
   _buildCommonData() {
     return {
-      authorId: this._authorId
+      authorId: this._authorId,
+      caseId: this._caseId
     }
   }
 
