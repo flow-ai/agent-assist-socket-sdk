@@ -48,6 +48,7 @@ class Client extends EventEmitter {
     this._silent = !!opts.silent
     this._session = opts.session
     this._companyKey = opts.companyKey
+    this._teamId = opts.teamId
 
     this._rest = new Rest(this._endpoint, this._silent)
 
@@ -104,11 +105,12 @@ class Client extends EventEmitter {
     }
   }
 
-  setParams({ authorId, caseId, environment, companyKey }) {
+  setParams({ authorId, caseId, environment, companyKey, teamId }) {
     this._authorId = authorId
     this._caseId = caseId
     this._endpoint = this._decideEndpoint(environment)
     this._companyKey = companyKey
+    this._teamId = teamId
   }
 
   start() {
@@ -240,7 +242,8 @@ class Client extends EventEmitter {
     return {
       authorId: this._authorId,
       caseId: this._caseId,
-      companyKey: this._companyKey
+      companyKey: this._companyKey,
+      teamId: this._teamId
     }
   }
 
