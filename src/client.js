@@ -47,6 +47,8 @@ class Client extends EventEmitter {
     this._endpoint = this._decideEndpoint(opts.environment)
     this._silent = !!opts.silent
     this._session = opts.session
+    this._companyKey = opts.companyKey
+    this._teamId = opts.teamId
 
     this._rest = new Rest(this._endpoint, this._silent)
 
@@ -68,6 +70,8 @@ class Client extends EventEmitter {
         return 'https://flow.dev.aws.lcloud.com/agent-assist-gateway-web'
       case 'stage':
         return 'https://app-stg.flow.ai/agent-assist-gateway-web'
+      case 'local':
+        return 'http://localhost:8080'
       default:
         return 'https://app.flow.ai/agent-assist-gateway-web'
     }
@@ -101,10 +105,12 @@ class Client extends EventEmitter {
     }
   }
 
-  setParams({ authorId, caseId, environment }) {
+  setParams({ authorId, caseId, environment, companyKey, teamId }) {
     this._authorId = authorId
     this._caseId = caseId
     this._endpoint = this._decideEndpoint(environment)
+    this._companyKey = companyKey
+    this._teamId = teamId
   }
 
   start() {
@@ -235,7 +241,9 @@ class Client extends EventEmitter {
   _buildCommonData() {
     return {
       authorId: this._authorId,
-      caseId: this._caseId
+      caseId: this._caseId,
+      companyKey: this._companyKey,
+      teamId: this._teamId
     }
   }
 
