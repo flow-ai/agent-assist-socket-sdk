@@ -94,6 +94,10 @@ class Client extends EventEmitter {
     return this._authorId
   }
 
+  get caseId() {
+    return this._caseId
+  }
+
   get reconnectTimeout() {
     switch (this._reconnectTimeoutDuration) {
       case Client.MAX_RECONNECT_TIMEOUT:
